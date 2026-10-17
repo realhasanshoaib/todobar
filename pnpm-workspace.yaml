@@ -4,9 +4,5 @@ packages:
 allowBuilds:
   tsc-rs: true
   esbuild: true
+  lightningcss: true
   unrs-resolver: true
-
-onlyBuiltDependencies:
-  - esbuild
-  - lightningcss
-  - unrs-resolver
