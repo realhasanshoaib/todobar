@@ -34,8 +34,8 @@ jobs:
 
       - name: Run web tests and checks
         run: >-
-          pnpm run test:web && pnpm exec prettier --check . && pnpm exec eslint .
-          && pnpm exec tsc --noEmit -p tsconfig.web.json
+          pnpm run test:web && pnpm exec oxfmt --check . && pnpm exec oxlint .
+          && pnpm exec tsc-rs --noEmit -p tsconfig.web.json
 
       - name: Build unsigned app
         run: ./scripts/build-app.sh

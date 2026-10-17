@@ -1,6 +1,7 @@
 import { HeadContent, Scripts, createRootRoute } from '@tanstack/react-router'
-import appCss from '../styles.css?url'
 import type { ReactNode } from 'react'
+
+import appCss from '../styles.css?url'
 
 const siteUrl = 'https://todobar.q9labs.ai'
 const assetVersion = 'v4'

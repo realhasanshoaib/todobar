@@ -1,8 +1,8 @@
 import { render, screen } from '@testing-library/react'
+import type { ComponentType } from 'react'
 import { describe, expect, it } from 'vitest'
 
 import { Route } from './index'
-import type { ComponentType } from 'react'
 
 describe('TodoBar landing page', () => {
   it('renders the branded hero and download call to action', () => {
