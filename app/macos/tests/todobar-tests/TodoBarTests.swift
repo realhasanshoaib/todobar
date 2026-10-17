@@ -67,7 +67,7 @@ final class TodoBarTests: XCTestCase {
         }
         XCTAssertEqual(appState.tasks.count, 4)
         XCTAssertEqual(appState.activeTasks.map(\.id), ["first", "second", "third"])
-        XCTAssertNil(appState.priorityRank(for: "done"))
+        XCTAssertNil(appState.priorityRank(for: completed.id))
 
         appState.moveActiveTask("first", to: "second")
         let middleDeadline = Date().addingTimeInterval(2)
@@ -92,12 +92,12 @@ final class TodoBarTests: XCTestCase {
         appState.toggle(completed)
         let completionDeadline = Date().addingTimeInterval(2)
         var reopened = try await LocalTaskRepository().loadTasks()
-        while reopened.first(where: { $0.id == "done" })?.completed != false && Date() < completionDeadline {
+        while reopened.first(where: { $0.id == completed.id })?.completed != false && Date() < completionDeadline {
             await Task.yield()
             reopened = try await LocalTaskRepository().loadTasks()
         }
-        XCTAssertEqual(reopened.first(where: { $0.id == "done" })?.completed, false)
-        XCTAssertEqual(appState.activeTasks.map(\.id), ["done", "third", "second", "first"])
+        XCTAssertEqual(reopened.first(where: { $0.id == completed.id })?.completed, false)
+        XCTAssertEqual(appState.activeTasks.map(\.id), [completed.id, "third", "second", "first"])
         XCTAssertTrue(appState.completedTasks.isEmpty)
     }
 }
