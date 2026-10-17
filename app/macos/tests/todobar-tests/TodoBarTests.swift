@@ -45,15 +45,15 @@ final class TodoBarTests: XCTestCase {
             try? FileManager.default.removeItem(at: directory)
         }
 
-        let completed = TodoTask(id: "done", title: "Done", completed: true, sortOrder: 0)
+        let completed = TodoTask(id: UUID().uuidString, title: "Done", completed: true, sortOrder: 0)
         try FileManager.default.createDirectory(at: directory, withIntermediateDirectories: true)
         let encoder = JSONEncoder()
         encoder.dateEncodingStrategy = .iso8601
         try encoder.encode([completed]).write(to: directory.appendingPathComponent("tasks.json"))
         let repository = LocalTaskRepository()
         let initialTasks = try await repository.loadTasks()
-        XCTAssertEqual(initialTasks.map(\.id), ["done"])
-        guard initialTasks.map(\.id) == ["done"] else { return }
+        XCTAssertEqual(initialTasks.map(\.id), [completed.id])
+        guard initialTasks.map(\.id) == [completed.id] else { return }
         for (id, order) in [("first", 10.0), ("second", 20.0), ("third", 30.0)] {
             _ = try await repository.createTask(TodoTask(id: id, title: id, sortOrder: order))
         }
