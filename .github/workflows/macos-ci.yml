@@ -69,7 +69,7 @@ jobs:
           name: todobar-unsigned-macos
           path: ${{ runner.temp }}/TodoBar-unsigned.zip
           if-no-files-found: error
-          retention-days: 1
+          retention-days: 31
 
   signed:
     name: Build signed app
