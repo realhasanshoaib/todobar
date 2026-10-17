@@ -4,6 +4,24 @@ set -euo pipefail
 umask 077
 
 project_root="${0:A:h:h}"
+app_path="$project_root/dist/TodoBar.app"
+sign_only=false
+if (( $# > 1 )); then
+  print -u2 "Usage: $0 [--sign-only]"
+  exit 2
+fi
+case "${1:-}" in
+  "") ;;
+  --sign-only)
+    sign_only=true
+    codesign --verify --deep --strict "$app_path"
+    ;;
+  *)
+    print -u2 "Usage: $0 [--sign-only]"
+    exit 2
+    ;;
+esac
+
 manifest="$project_root/release-manifest.json"
 restore_directory="$(mktemp -d /tmp/todobar-signing.XXXXXX)"
 keychain_path="$restore_directory/signing.keychain-db"
@@ -57,9 +75,11 @@ if ! security find-identity -v -p codesigning "$keychain_path" | grep -F "$ident
 fi
 
 cd "$project_root"
-SIGN_IDENTITY="$identity" \
-  ./scripts/build-app.sh
+if $sign_only; then
+  codesign --force --deep --options runtime --timestamp --sign "$identity" "$app_path"
+else
+  SIGN_IDENTITY="$identity" ./scripts/build-app.sh
+fi
 
-app_path="$project_root/dist/TodoBar.app"
 codesign --verify --deep --strict "$app_path"
 print "Verified signed TodoBar.app"

@@ -4,18 +4,36 @@ on:
   push:
     branches: [main]
   pull_request:
+    types: [opened, synchronize, reopened, ready_for_review, converted_to_draft]
+
+concurrency:
+  group: macos-ci-${{ github.event_name }}-${{ github.event.pull_request.number || github.run_id }}
+  cancel-in-progress: true
 
 permissions:
   contents: read
 
 jobs:
   verify:
+    if: github.event_name != 'pull_request' || !github.event.pull_request.draft
     name: Test and unsigned app build
     runs-on: macos-26
     timeout-minutes: 45
     steps:
       - name: Check out source
         uses: actions/checkout@v5
+
+      - name: Identify Swift toolchain
+        id: toolchain
+        run: echo "key=$(xcodebuild -version | shasum -a 256 | cut -d ' ' -f 1)" >> "$GITHUB_OUTPUT"
+
+      - name: Cache Swift packages and build products
+        uses: actions/cache@0057852bfaa89a56745cba8c7296529d2fc39830 # v4
+        with:
+          path: .build
+          key: swift-${{ runner.os }}-${{ runner.arch }}-${{ steps.toolchain.outputs.key }}-${{ hashFiles('Package.swift', 'Package.resolved') }}-${{ github.sha }}
+          restore-keys: |
+            swift-${{ runner.os }}-${{ runner.arch }}-${{ steps.toolchain.outputs.key }}-${{ hashFiles('Package.swift', 'Package.resolved') }}-
 
       - name: Set up Node
         uses: actions/setup-node@v5
@@ -29,19 +47,33 @@ jobs:
       - name: Install web dependencies
         run: pnpm install --frozen-lockfile
 
+      - name: Run web checks
+        run: >-
+          pnpm exec oxfmt --check . && pnpm exec oxlint .
+          && pnpm exec tsc-rs --noEmit -p tsconfig.web.json
+
       - name: Run Swift tests
         run: swift test
-
-      - name: Run web tests and checks
-        run: >-
-          pnpm run test:web && pnpm exec prettier --check . && pnpm exec eslint .
-          && pnpm exec tsc --noEmit -p tsconfig.web.json
 
       - name: Build unsigned app
         run: ./scripts/build-app.sh
 
+      - name: Package verified app for signing
+        if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+        run: ditto -c -k --keepParent dist/TodoBar.app "$RUNNER_TEMP/TodoBar-unsigned.zip"
+
+      - name: Upload verified app for signing
+        if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+        uses: actions/upload-artifact@v7.0.1
+        with:
+          name: todobar-unsigned-macos
+          path: ${{ runner.temp }}/TodoBar-unsigned.zip
+          if-no-files-found: error
+          retention-days: 31
+
   signed:
     name: Build signed app
+    needs: verify
     if: github.event_name == 'push' && github.ref == 'refs/heads/main'
     runs-on: macos-26
     environment: production-signing
@@ -50,13 +82,22 @@ jobs:
       - name: Check out source
         uses: actions/checkout@v5
 
+      - name: Download verified app
+        uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v4
+        with:
+          name: todobar-unsigned-macos
+          path: ${{ runner.temp }}/todobar-unsigned
+
+      - name: Restore verified app bundle
+        run: ditto -x -k "$RUNNER_TEMP/todobar-unsigned/TodoBar-unsigned.zip" dist
+
       - name: Install 1Password CLI
         run: command -v op >/dev/null || brew install 1password-cli
 
-      - name: Build and verify signed app
+      - name: Sign and verify existing app
         env:
           OP_SERVICE_ACCOUNT_TOKEN: ${{ secrets.OP_SERVICE_ACCOUNT_TOKEN }}
-        run: ./scripts/build-signed-release.sh
+        run: ./scripts/build-signed-release.sh --sign-only
 
       - name: Package signed app artifact
         run: ditto -c -k --keepParent dist/TodoBar.app "$RUNNER_TEMP/TodoBar-signed.zip"
