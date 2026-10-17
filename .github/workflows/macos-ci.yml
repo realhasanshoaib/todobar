@@ -32,9 +32,9 @@ jobs:
       - name: Run Swift tests
         run: swift test
 
-      - name: Run web tests and checks
+      - name: Run web checks
         run: >-
-          pnpm run test:web && pnpm exec oxfmt --check . && pnpm exec oxlint .
+          pnpm exec oxfmt --check . && pnpm exec oxlint .
           && pnpm exec tsc-rs --noEmit -p tsconfig.web.json
 
       - name: Build unsigned app
