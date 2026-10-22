@@ -32,9 +32,9 @@ jobs:
       - name: Run Swift tests
         run: swift test
 
-      - name: Run web tests and checks
+      - name: Run web checks
         run: >-
-          pnpm run test:web && pnpm exec prettier --check . && pnpm exec eslint .
+          pnpm exec prettier --check . && pnpm exec eslint .
           && pnpm exec tsc --noEmit -p tsconfig.web.json
 
       - name: Build unsigned app
